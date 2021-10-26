@@ -7,12 +7,12 @@ const esClient = require("./elasticsearch-client");
 const collectionName = "transaction";
 
 (async () => {
-  const upsertChangeStream = await getUpsertChangeStream();
+  const upsertChangeStream = await getUpsertChangeStream(collectionName);
   upsertChangeStream.on("change", async change => {
     console.log("Pushing data to elasticsearch with id", change.fullDocument._id);
     change.fullDocument.id = change.fullDocument._id;
     Reflect.deleteProperty(change.fullDocument, "_id");
-    const response = await client.index({
+    const response = await esClient.index({
       "id": change.fullDocument.id,
       "index": collectionName,
       "body": change.fullDocument
@@ -25,10 +25,10 @@ const collectionName = "transaction";
     console.error(error);
   });
 
-  const deleteChangeStream = await getDeleteChangeStream();
+  const deleteChangeStream = await getDeleteChangeStream(collectionName);
   deleteChangeStream.on("change", async change => {
     console.log("Deleting data from elasticsearch with id", change.documentKey._id);
-    const response = await client.delete({
+    const response = await esClient.delete({
       "id": change.documentKey._id,
       "index": collectionName
     });

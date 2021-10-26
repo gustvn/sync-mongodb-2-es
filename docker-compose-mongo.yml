@@ -1,22 +1,14 @@
-version: '3.1'
+version: '3'
 
 services:
-
-  mongo:
-    image: mongo
-    restart: always
+  mongodb:
+    image : davybello/mongo-replica-set:4.4.8
+    container_name: mongodb
+    volumes:
+      - "./docker/.data/mongo1:/var/lib/mongo1"
+      - "./docker/.data/mongo2:/var/lib/mongo2"
+      - "./docker/.data/mongo3:/var/lib/mongo3"
     ports:
       - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
-
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+      - 27018:27018
+      - 27019:27019
