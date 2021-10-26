@@ -1,1 +1,1 @@
-# sync-mongodb-2-es
+capture data change from mongodb and index to elasticsearch
