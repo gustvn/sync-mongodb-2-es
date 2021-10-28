@@ -38,4 +38,41 @@ const collectionName = args[0];
   deleteChangeStream.on("error", error => {
     console.error(error);
   });
+
+  queue.process(3, function (job, done) {
+    // transcode image asynchronously and report progress
+    job.progress(42);
+
+    console.log(job.data);
+    var esAction = job.data.esAction;
+    delete job.data['esAction'];
+    
+    if (esAction == "delete") {
+      esClient.delete(
+        { id: job.data.mongo_id, index: collectionName},
+        function(error, response) {
+          if(error) throw error;
+
+          console.log("elasticsearch delete response code: " + response.statusCode);
+          if (response.statusCode != 200)
+            throw new Error('can not delete ' + job.data.mongo_id);
+        }
+      );
+    } else {
+      esClient.index(
+        { id: job.data.mongo_id, index: collectionName, body: job.data },
+        function(error, response) {
+          if(error) throw error;
+
+          console.log("elasticsearch index response code: " + response.statusCode);
+          if (response.statusCode != 200 && response.statusCode != 201)
+            throw new Error('can not index ' + job.data.mongo_id, job.data);
+        }
+      );
+    }
+    
+    // call done when finished
+    done();
+  });
+
 })();
