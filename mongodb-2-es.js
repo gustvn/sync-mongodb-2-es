@@ -1,11 +1,17 @@
-const mongoConnectionString = 'mongodb+srv://visikard_readonly:UwNbzzehQQFRafNs@kanootaskforce.2dqx2.mongodb.net';
-const mongoDbName = 'kanoo_vkreporting_prod02';
-const mongoCollectionName = 'transaction';
+require('dotenv').config();
 
-const esHost = 'https://kanoo-staging2-elasticsearch.kardsys.com';
-const esIndexName = 'transaction';
+const mongoConnectionString = process.env.MONGODB_URI;
+const mongoDbName = process.env.MONGODB_DB;
 
-const Limit = 500;
+var args = process.argv.slice(2);
+const mongoCollectionName = args[0];
+if (mongoCollectionName == undefined)
+  throw new Error('collection name must a string');
+
+const esHost = process.env.ELASTICSEARCH_NODE;
+const esIndexName = mongoCollectionName;
+
+const Limit = 1000;
 
 // setup client for elasticsearch: npm install @elastic/elasticsearch
 // documentation: https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/index.html
@@ -19,7 +25,7 @@ const ObjectID = require('mongodb').ObjectID;
 var mongoClient = null;
 
 var minTime = 1569436481085;
-// var minTime = 1615900532348;
+// var minTime = 1627442930246;
 console.log("1. minTime = " + minTime);
 
 var collection = null;
@@ -45,24 +51,22 @@ async function indexES(err, result) {
   if(err) throw err;
 
   for (i in result) {
-    var item = { ...result[i] };
-    item['mongo_id'] = id;
-    var id = item._id.toString() + item.timestamp;
-    delete item['_id'];
+    result[i]['mongo_id'] = result[i]._id.toString();
+    delete result[i]['_id'];
     
     EsClient.index(
-      {index: esIndexName, id: id, body: item },
+      {index: esIndexName, id: result[i].mongo_id, body: result[i] },
       function(error, response) {
         if(err) throw err;
 
-        if (response.statusCode != 200) {
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          console.log("error id: " + result[i].mongo_id);
           console.log(response);
-          console.log("error id: " + item['mongo_id']);
         }
       }
     );
 
-    await sleep(5);
+    await sleep(15);
   }
 
   minTime = result[result.length - 1].timestamp;
