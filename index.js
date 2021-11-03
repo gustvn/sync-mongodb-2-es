@@ -55,22 +55,24 @@ const collectionName = args[0];
       esClient.delete(
         { id: job.data.mongo_id, index: collectionName},
         function(error, response) {
-          if(error) throw error;
+          if (error || response.statusCode != 200) {
+            console.log('can not delete index ' + job.data.mongo_id);
 
-          console.log("elasticsearch delete response code: " + response.statusCode);
-          if (response.statusCode != 200)
-            throw new Error('can not delete index ' + job.data.mongo_id);
+            job.data['esAction'] = "delete";
+            queue.add(job.data, { priority: 1, delay: 20000 });
+          }
         }
       );
     } else {
       esClient.index(
         { id: job.data.mongo_id, index: collectionName, body: job.data },
         function(error, response) {
-          if(error) throw error;
+          if (error || (response.statusCode != 200 && response.statusCode != 201)) {
+            console.log('can not index ' + job.data.mongo_id, job.data);
 
-          console.log("elasticsearch index response code: " + response.statusCode);
-          if (response.statusCode != 200 && response.statusCode != 201)
-            throw new Error('can not index ' + job.data.mongo_id, job.data);
+            job.data['esAction'] = "index";
+            queue.add(job.data, { priority: 1, delay: 20000 });
+          }
         }
       );
     }
